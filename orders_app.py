@@ -42,7 +42,6 @@ def create_order():
     order_model.save()
     # Prepare the response data
     response_data = {
-        # "order_id": order.order_id,
         "name": order.user.name,
         "email": order.user.email,
         "birthday": order.user.birthday,
@@ -53,7 +52,6 @@ def create_order():
         "is_delivered": False
     }
 
-    # success_response = {"data": response_data, "success": True}
     return jsonify({"message":"order created successfully","order_id":str(order_model.id),"response":response_data}), 201
 
 @app.route('/order/<order_id>', methods=['DELETE'])
@@ -151,6 +149,8 @@ def mark_order_delivered(order_id):
 
     if not order:
         return jsonify({"error": "Order not found"}), 404
+    if order.is_delivered:
+        return jsonify({"message": "Order is already marked as delivered"}), 400
 
     # Update the is_delivered field to True
     order.is_delivered = True
