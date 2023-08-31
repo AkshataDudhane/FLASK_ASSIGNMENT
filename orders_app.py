@@ -1,8 +1,8 @@
-from flask import *
 from mongoengine import connect
 from datetime import datetime
 from orders_model import OrdersModel
 from orders_service import Order
+from flask import *
 
 app = Flask(__name__)
 
@@ -11,24 +11,36 @@ connect('OrderDb')
 @app.route('/order', methods=['POST'])
 def create_order():
     data = request.json
-    
+
+    required_fields = ['name', 'birthday','email', 'state', 'zipcode']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        error_response = {
+            "error_code": "400",
+            "error": "MISSING_FIELDS",
+            "message": f"Missing required fields: {', '.join(missing_fields)}"
+        }
+        return jsonify(error_response), 400
+
+    if not isinstance(data['name'], str) or len(data['name'])>100:
+        error_response = {"error_code": "400", "error": "INVALID_NAME", "message": "Invalid name"}
+        return jsonify(error_response), 400
+    if len(data['zipcode'])>10:
+         error_response = {"error_code": "400", "error": "INVALID ZIP_CODE", "message": "Zipcode not in range"}
+         return jsonify(error_response), 400
+
+    try:
+        datetime.strptime(data['birthday'], '%m/%d/%Y')
+    except ValueError:
+            error_response = {"error_code": "400", "error": "INVALID_BIRTHDAY_FORMAT", "message": "Invalid birthday format"}
+            return jsonify(error_response), 400
+
     # Validate input data using Order class methods
-    order = Order(order_id=id,name=data['name'], birthday=data['birthday'], email=data['email'], state=data['state'], zipcode=data['zipcode']) 
-    if not order.user.check_state():
-        error_response = {"error_code": "400", "error": "INVALID_STATE", "message": "Invalid state"}
-        return jsonify(error_response), 400
-    if not order.user.check_zip():
-        error_response = {"error_code": "400", "error": "INVALID_ZIPCODE", "message": "Invalid ZipCode"}
-        return jsonify(error_response), 400
-    if not order.user.val_weekday():
-        error_response = {"error_code": "400", "error": "INVALID_WEEKDAY", "message": "Invalid Weekday"}
-        return jsonify(error_response), 400
-    if not order.user.check_email():
-        error_response = {"error_code": "400", "error": "INVALID_EMAIL", "message": "Invalid Email"}
-        return jsonify(error_response), 400
-    if not order.user.calculateAge():
-        error_response = {"error_code": "400", "error": "INVALID_AGE", "message": "Invalid Age"}
-        return jsonify(error_response), 400
+    order = Order(order_id=id,name=data['name'], birthday=data.get('birthday'), email=data['email'], state=data['state'], zipcode=data['zipcode']) 
+    
+    validation_result = order.validate_order()
+    if validation_result:
+        return jsonify(validation_result), 400
     # Create a new OrdersModel instance
     order_model = OrdersModel(
         name=order.user.name,
@@ -41,22 +53,14 @@ def create_order():
     # Save the order to the database
     order_model.save()
     # Prepare the response data
-    response_data = {
-        "name": order.user.name,
-        "email": order.user.email,
-        "birthday": order.user.birthday,
-        "state": order.user.state,
-        "zipcode": order.user.zipcode,
-        "created_time": order_model.created_time,
-        "updated_time": order_model.updated_time,
-        "is_delivered": False
-    }
+    order_dict = order_model.to_dict()
 
-    return jsonify({"message":"order created successfully","order_id":str(order_model.id),"response":response_data}), 201
+    return jsonify({"message": "order created successfully", "response": order_dict}), 201
+
 
 @app.route('/order/<order_id>', methods=['DELETE'])
 def delete_order(order_id):
-    order = OrdersModel.objects(id=order_id).first()
+    order = OrdersModel.objects(id=order_id).get()
     if not order:
         return jsonify({
        "error_code" : "404",
@@ -67,30 +71,18 @@ def delete_order(order_id):
     
     order.update(set__is_deleted=True, set__del_time=datetime.utcnow())
     
-    return jsonify({"is_deleted":bool(order.is_deleted),"message": "Order marked as deleted"}), 200
+    return jsonify({"is_deleted":order.is_deleted,"message": "Order marked as deleted"}), 200
 
 @app.route('/order/<order_id>', methods=['GET']) #get order by id
 def get_order(order_id):
-    order = OrdersModel.objects(id=order_id).first()
+    order = OrdersModel.objects(id=order_id).get()
     
     if not order:
         return jsonify({"error_code":"400","message":"Order does not exists","error": "ORDER_NOT_FOUND"}), 404
-    
-    response_data = {
-        "order_id":str(order.id),
-        "user_name": order.name,
-        "email": order.email,
-        "birthday": order.birthday,
-        "state": order.state,
-        "zipcode": order.zipcode,
-        "created_time": order.created_time,
-        "updated_time": order.updated_time,
-        "is_delivered": order.is_delivered,
-        "is_deleted": order.is_deleted
-        
-    }
-
-    return jsonify({"response":response_data}), 200
+    if order.is_deleted:
+        return jsonify({"error_code":"404","message":"Can't fetch deleted order"}), 404
+    order_dict = order.to_dict()
+    return jsonify({"response":order_dict}), 200
 
 
 @app.route('/orders', methods=['GET'])
@@ -108,15 +100,20 @@ def list_orders():
         query = query.filter(email=filter_email)
     if filter_state:
         query = query.filter(state=filter_state)
+
     if filter_zipcode:
         query = query.filter(zipcode=filter_zipcode)
 
     total_orders = query.count()
-    orders = query.order_by(sort_order * 'created_time')[per_page * (page - 1):per_page * page]
-
+    start_index=per_page * (page - 1)
+    end_index=per_page * page
+    if sort_order == 1:
+            orders = query.order_by('created_time')[start_index:end_index]
+    elif sort_order == -1:
+            orders = query.order_by('-created_time')[start_index:end_index]
     if not orders:
-        return jsonify({"message": "No orders found"}), 200
-
+            return jsonify({"message": "No orders found"}), 200
+    print('created_time')
     orders_list = []
     for order in orders:
         order_data = {
@@ -145,7 +142,7 @@ def list_orders():
 @app.route('/order/<order_id>', methods=['PUT'])
 def mark_order_delivered(order_id):
     # Retrieve the order based on the provided order_id
-    order = OrdersModel.objects(id=order_id).first()
+    order = OrdersModel.objects(id=order_id).get()
 
     if not order:
         return jsonify({"error": "Order not found"}), 404
@@ -160,4 +157,4 @@ def mark_order_delivered(order_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000 ,debug=True)
