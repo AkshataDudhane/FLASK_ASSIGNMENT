@@ -122,7 +122,6 @@ def list_orders():
 
         if filter_zipcode:
             query = query.filter(zipcode=filter_zipcode)
-
         total_orders = query.count()
         start_index=per_page * (page - 1)
         end_index=per_page * page
@@ -134,7 +133,7 @@ def list_orders():
                 return jsonify({"message": "No orders found"}), 200
 
         orders_list = []
-        
+
         for order in orders:
             order_data = {
                 "order_id":str(order.id),
