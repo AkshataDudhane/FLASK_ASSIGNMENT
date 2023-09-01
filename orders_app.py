@@ -104,7 +104,7 @@ def get_order(order_id):
 
 
 @app.route('/orders', methods=['GET'])
-def list_orders():
+def list_orders(): 
     try:
         page = int(request.args.get('page', 1))
         per_page = 10
