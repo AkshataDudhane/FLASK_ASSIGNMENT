@@ -6,7 +6,7 @@ class Order:
     def __init__(self, order_id, name, email, state, zipcode,birthday=None):
         self.order_id = order_id
         self.user=User(name,birthday,email,state,zipcode)
-    
+
     def validate_order(self):
         validation_checks = [
             (self.user.check_state, "INVALID_STATE", "Invalid state"),
@@ -32,7 +32,7 @@ class Order:
 
     def mark_order_as_valid(self):
         if(self.validate_order()):
-            OrdersModel.objects(order_id=self.order_id).update(set__is_valid=True)
+            OrdersModel.objects(order_id=self.order_id).update(set__is_delivered=True)
             
 
 
