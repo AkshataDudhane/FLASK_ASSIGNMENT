@@ -135,18 +135,8 @@ def list_orders():
         orders_list = []
 
         for order in orders:
-            order_data = {
-                "order_id":str(order.id),
-                "user_name": order.name,
-                "email": order.email,
-                "birthday": order.birthday,
-                "state": order.state,
-                "zipcode": order.zipcode,
-                "created_time": order.created_time,
-                "updated_time": order.updated_time,
-                "is_delivered": order.is_delivered
-            }
-            orders_list.append(order_data)
+            order_dict = order.to_dict()
+            orders_list.append(order_dict)
 
         response_data = {
             "orders": orders_list,
