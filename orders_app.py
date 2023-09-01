@@ -134,6 +134,7 @@ def list_orders():
                 return jsonify({"message": "No orders found"}), 200
 
         orders_list = []
+        
         for order in orders:
             order_data = {
                 "order_id":str(order.id),
