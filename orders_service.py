@@ -27,13 +27,22 @@ class Order:
         return None
     
     def save_order(self):
-        order_model = OrdersModel(id=self.order_id, name=self.user.name, birthday=self.user.birthday, email=self.user.email, state=self.user.state, zipcode=self.user.zipcode)
+        order_model = OrdersModel(name=self.user.name, birthday=self.user.birthday, email=self.user.email, state=self.user.state, zipcode=self.user.zipcode)
         OrdersModel.save(order_model)
 
-    def mark_order_as_valid(self):
-        if(self.validate_order()):
-            OrdersModel.objects(order_id=self.order_id).update(set__is_delivered=True)
-            
+    def mark_order_delivered(self, order_id):
+            order = OrdersModel.objects(id=order_id).first()
+
+            if not order:
+                return {"error": "Order not found"}, 404
+            if order.is_delivered:
+                return {"message": "Order is already marked as delivered"}, 400
+
+            # Update the is_delivered field to True
+            order.is_delivered = True
+            order.save()
+
+            return {"is_delivered": order.is_delivered, "message": "Order marked as delivered"}, 200
 
 
 print("Validation successful")

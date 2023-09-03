@@ -53,7 +53,7 @@ def create_order():
     )
 
     # Save the order to the database
-    order_model.save()
+    order.save_order()
     # Prepare the response data
     order_dict = order_model.to_dict()
 
@@ -104,7 +104,7 @@ def get_order(order_id):
 
 
 @app.route('/orders', methods=['GET'])
-def list_orders(): 
+def list_orders():
     try:
         page = int(request.args.get('page', 1))
         per_page = 10
@@ -151,24 +151,18 @@ def list_orders():
         
 
 @app.route('/order/<order_id>', methods=['PUT'])
-def mark_order_delivered(order_id):
-    # Retrieve the order based on the provided order_id
+def mark_orderas_delivered(order_id):
     try:
-        order = OrdersModel.objects(id=str(order_id)).get()
+        # Create an instance of the OrdersModel class
+        order_service = OrdersModel()
 
-        if not order:
-            return jsonify({"error": "Order not found"}), 404
-        if order.is_delivered:
-            return jsonify({"message": "Order is already marked as delivered"}), 400
+        # Call the mark_order_delivered method
+        response, status_code = order_service.mark_order_delivered(order_id)
 
-        # Update the is_delivered field to True
-        order.is_delivered = True
-        order.save()
+        return jsonify(response), status_code
 
-        return jsonify({"is_delivered":order.is_delivered,"message": "Order marked as delivered"}), 200
     except Exception as e:
-         return jsonify({"error_code": "500", "message": "Internal Server Error", "error": str(e)}), 500
-      
+        return jsonify({"error_code": "500", "message": "Internal Server Error", "error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000 ,debug=True)
