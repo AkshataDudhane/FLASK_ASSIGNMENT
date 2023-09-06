@@ -8,11 +8,9 @@ class TestingUser(unittest.TestCase):
     def setUp(self):
         birthday_date = datetime.datetime.strptime("6/4/1951", "%m/%d/%Y").date()
         self.user = User("Kara", birthday_date, "KaraCCrowe@trashymail.com", "NY", "06902")
-    # def setUp(self):
-    #     self.user = User("Kara","6/4/1951","KaraCCrowe@trashymail.com","NY","06902")
+
 
     def test_validState(self):
-        # self.user.state="NY"
         result = self.user.check_state()
         self.assertEqual(result,True)  # NY is allowed, so it should return True
 
@@ -33,7 +31,6 @@ class TestingUser(unittest.TestCase):
     def test_validMonday(self):
         self.user.birthday = datetime.datetime.strptime("6/1/2000", "%m/%d/%Y").date()
 
-        # self.user.birthday = "6/1/2000" # June 1st, 2000 is the first Monday, so it should return True
         result = self.user.val_weekday()
         self.assertEqual(result,True)  # June 1st, 2000 is not the first Monday, so it should return True
 
@@ -56,6 +53,5 @@ class TestingUser(unittest.TestCase):
 
     def test_Below21(self):
         self.user.birthday = datetime.datetime.strptime("8/15/2002", "%m/%d/%Y").date()
-        # self.user.birthday = "8/15/2002"  # Birthdate is August 15th, 2002, so age is younger than 21, should return False
         result = self.user.calculateAge()
         self.assertEqual(result, False)
