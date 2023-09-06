@@ -31,11 +31,6 @@ class Order:
                 }
 
         return None
-    
-    def save_order(self):
-        order_model = OrdersModel(name=self.user.name, birthday=self.user.birthday, email=self.user.email, state=self.user.state, zipcode=self.user.zipcode)
-        order_model.save()
-
     def to_dict(self):
         response_data = {
             "name": self.user.name,
@@ -48,6 +43,11 @@ class Order:
             "is_delivered": self.is_delivered
         }
         return response_data
+    
+    def save_order(self):
+        order_model = OrdersModel(name=self.user.name, birthday=self.user.birthday, email=self.user.email, state=self.user.state, zipcode=self.user.zipcode)
+        order_model.save()
+
     
     def delete_order(order_id):
         try:
